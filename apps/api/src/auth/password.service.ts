@@ -30,11 +30,9 @@ export class PasswordService implements PasswordServiceContract {
     this.assertNonEmpty('hash', hash);
 
     return argon2.needsRehash(hash, {
-      type: argon2.argon2id,
       memoryCost: this.authConfigService.argon2.memoryCost,
       timeCost: this.authConfigService.argon2.timeCost,
       parallelism: this.authConfigService.argon2.parallelism,
-      hashLength: this.authConfigService.argon2.hashLength,
     });
   }
 
