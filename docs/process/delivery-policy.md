@@ -39,3 +39,11 @@ A feature is implemented only if at least one of the following is true:
 4. It satisfies a verified requirement.
 
 If none of these conditions apply, leave the codebase unchanged.
+
+## Rule #10: Service Before Endpoint
+
+Every public API endpoint must sit on top of a tested service.
+
+Controllers should orchestrate request/response behavior only. Business rules and state transitions belong in services.
+
+Do not introduce endpoints first and backfill service logic later.
