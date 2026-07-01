@@ -38,7 +38,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter(platformLogger));
 
   await app.register(helmet as never);
   await app.register(cors as never, {

@@ -4,12 +4,12 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
+import { PlatformLoggerService } from './platform-logger.service.js';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
+  constructor(private readonly logger: PlatformLoggerService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -21,16 +21,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const errorPayload = this.toErrorPayload(exception, status);
 
-    this.logger.error(
-      JSON.stringify({
-        event: 'http.exception',
+    this.logger.logEvent(
+      'http.exception',
+      {
         method: request.method,
         url: request.url,
         status,
         code: errorPayload.code,
         message: errorPayload.message,
         requestId: request.id,
-      }),
+      },
+      'error',
     );
 
     response.status(status).send({
@@ -57,13 +58,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       if (typeof payload === 'object' && payload !== null) {
-        const value = payload as { message?: string | string[]; error?: string };
+        const value = payload as { code?: string; message?: string | string[]; error?: string };
         const normalizedMessage = Array.isArray(value.message)
           ? value.message.join(', ')
           : (value.message ?? value.error ?? exception.message);
 
         return {
-          code: this.httpCode(status),
+          code: value.code ?? this.httpCode(status),
           message: normalizedMessage,
         };
       }
