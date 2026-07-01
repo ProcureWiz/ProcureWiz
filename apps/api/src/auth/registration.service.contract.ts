@@ -1,5 +1,3 @@
-import { type SignedJwtToken } from './jwt.service.contract.js';
-
 export type RegisterLocalAccountInput = {
   email: string;
   password: string;
@@ -11,10 +9,7 @@ export type RegisterLocalAccountResult = {
   identityId: string;
   organizationId: string;
   roles: string[];
-  accessToken: SignedJwtToken;
-  refreshToken: SignedJwtToken;
-  refreshTokenId: string;
-  tokenIssuer: string;
+  registeredAt: string;
 };
 
 export interface RegistrationServiceContract {

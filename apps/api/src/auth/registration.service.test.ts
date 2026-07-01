@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AuthConfigService } from './auth-config.service.js';
-import { type JwtServiceContract, type SignedJwtToken } from './jwt.service.contract.js';
 import { type PasswordServiceContract } from './password.service.contract.js';
 import { RegistrationService } from './registration.service.js';
 import { type RegistrationStoreContract } from './registration-store.contract.js';
@@ -23,44 +21,13 @@ class PasswordServiceFake implements PasswordServiceContract {
   }
 }
 
-class JwtServiceFake implements JwtServiceContract {
-  async signAccessToken(identity: { subject: string; roles?: string[]; organizationId?: string }): Promise<SignedJwtToken> {
-    return {
-      token: `access-${identity.subject}`,
-      tokenId: `access-id-${identity.subject}`,
-      kind: 'access',
-      expiresInSeconds: 900,
-    };
-  }
-
-  async signRefreshToken(identity: { subject: string; roles?: string[]; organizationId?: string }): Promise<SignedJwtToken> {
-    return {
-      token: `refresh-${identity.subject}`,
-      tokenId: `refresh-id-${identity.subject}`,
-      kind: 'refresh',
-      expiresInSeconds: 2592000,
-    };
-  }
-
-  async verifyAccessToken(): Promise<never> {
-    throw new Error('NOT_REQUIRED_IN_REGISTRATION_TEST');
-  }
-
-  async verifyRefreshToken(): Promise<never> {
-    throw new Error('NOT_REQUIRED_IN_REGISTRATION_TEST');
-  }
-
-  async rotateRefreshToken(): Promise<never> {
-    throw new Error('NOT_REQUIRED_IN_REGISTRATION_TEST');
-  }
-}
-
 class RegistrationStoreFake implements RegistrationStoreContract {
   private readonly identities = new Map<string, { id: string; email: string; organizationId: string; roles: string[] }>();
+  private readonly organizations = new Set<string>();
 
   organizationCreateCalls = 0;
-  identityCreateCalls = 0;
-  latestCreateIdentityInput:
+  userCreateCalls = 0;
+  latestCreateUserInput:
     | {
         email: string;
         passwordHash: string;
@@ -70,30 +37,35 @@ class RegistrationStoreFake implements RegistrationStoreContract {
       }
     | undefined;
 
-  async findIdentityByEmail(email: string) {
-    return this.identities.get(email) ?? null;
+  async userExists(email: string) {
+    return this.identities.has(email);
+  }
+
+  async organizationExists(name: string) {
+    return this.organizations.has(name.toLowerCase());
   }
 
   async createOrganization(name: string) {
     this.organizationCreateCalls += 1;
+    this.organizations.add(name.toLowerCase());
     return {
       id: `org-${this.organizationCreateCalls}`,
       name,
     };
   }
 
-  async createIdentity(input: {
+  async createUser(input: {
     email: string;
     passwordHash: string;
     organizationId: string;
     roles: string[];
     displayName?: string;
   }) {
-    this.identityCreateCalls += 1;
-    this.latestCreateIdentityInput = input;
+    this.userCreateCalls += 1;
+    this.latestCreateUserInput = input;
 
     const identity = {
-      id: `identity-${this.identityCreateCalls}`,
+      id: `identity-${this.userCreateCalls}`,
       email: input.email,
       organizationId: input.organizationId,
       roles: input.roles,
@@ -111,17 +83,16 @@ class RegistrationStoreFake implements RegistrationStoreContract {
       roles: ['owner'],
     });
   }
+
+  seedOrganization(name: string): void {
+    this.organizations.add(name.toLowerCase());
+  }
 }
 
-const authConfigStub = {
-  jwtIssuer: 'procurewiz-api',
-} as AuthConfigService;
-
-test('registers local account and returns tokens', async () => {
+test('registers local account and returns registration result', async () => {
   const passwordService = new PasswordServiceFake();
-  const jwtService = new JwtServiceFake();
   const store = new RegistrationStoreFake();
-  const service = new RegistrationService(authConfigStub, passwordService, jwtService, store);
+  const service = new RegistrationService(passwordService, store);
 
   const result = await service.registerLocalAccount({
     email: '  User@Example.com ',
@@ -132,26 +103,22 @@ test('registers local account and returns tokens', async () => {
 
   assert.equal(result.identityId, 'identity-1');
   assert.equal(result.organizationId, 'org-1');
-  assert.equal(result.accessToken.kind, 'access');
-  assert.equal(result.refreshToken.kind, 'refresh');
-  assert.equal(result.refreshTokenId, 'refresh-id-identity-1');
-  assert.equal(result.tokenIssuer, 'procurewiz-api');
+  assert.ok(result.registeredAt.length > 0);
 
   assert.equal(passwordService.hashCalls.length, 1);
   assert.equal(store.organizationCreateCalls, 1);
-  assert.equal(store.identityCreateCalls, 1);
-  assert.equal(store.latestCreateIdentityInput?.email, 'user@example.com');
-  assert.equal(store.latestCreateIdentityInput?.passwordHash, 'hashed:StrongPassword123!');
-  assert.deepEqual(store.latestCreateIdentityInput?.roles, ['owner']);
+  assert.equal(store.userCreateCalls, 1);
+  assert.equal(store.latestCreateUserInput?.email, 'user@example.com');
+  assert.equal(store.latestCreateUserInput?.passwordHash, 'hashed:StrongPassword123!');
+  assert.deepEqual(store.latestCreateUserInput?.roles, ['owner']);
 });
 
 test('registration fails when identity already exists', async () => {
   const passwordService = new PasswordServiceFake();
-  const jwtService = new JwtServiceFake();
   const store = new RegistrationStoreFake();
   store.seedIdentity('existing@example.com');
 
-  const service = new RegistrationService(authConfigStub, passwordService, jwtService, store);
+  const service = new RegistrationService(passwordService, store);
 
   await assert.rejects(
     async () =>
@@ -165,16 +132,39 @@ test('registration fails when identity already exists', async () => {
   );
 
   assert.equal(store.organizationCreateCalls, 0);
-  assert.equal(store.identityCreateCalls, 0);
+  assert.equal(store.userCreateCalls, 0);
+  assert.equal(passwordService.hashCalls.length, 0);
+});
+
+test('registration fails when organization name already exists', async () => {
+  const passwordService = new PasswordServiceFake();
+  const store = new RegistrationStoreFake();
+  store.seedOrganization('ProcureWiz Org');
+
+  const service = new RegistrationService(passwordService, store);
+
+  await assert.rejects(
+    async () =>
+      service.registerLocalAccount({
+        email: 'new@example.com',
+        password: 'StrongPassword123!',
+        organizationName: 'ProcureWiz Org',
+      }),
+    {
+      message: 'ORGANIZATION_ALREADY_EXISTS',
+    },
+  );
+
+  assert.equal(store.organizationCreateCalls, 0);
+  assert.equal(store.userCreateCalls, 0);
   assert.equal(passwordService.hashCalls.length, 0);
 });
 
 test('registration rejects empty password', async () => {
   const passwordService = new PasswordServiceFake();
-  const jwtService = new JwtServiceFake();
   const store = new RegistrationStoreFake();
 
-  const service = new RegistrationService(authConfigStub, passwordService, jwtService, store);
+  const service = new RegistrationService(passwordService, store);
 
   await assert.rejects(
     async () =>

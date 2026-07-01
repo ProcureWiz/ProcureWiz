@@ -11,9 +11,10 @@ export type RegistrationIdentity = {
 };
 
 export interface RegistrationStoreContract {
-  findIdentityByEmail(email: string): Promise<RegistrationIdentity | null>;
+  userExists(email: string): Promise<boolean>;
+  organizationExists(name: string): Promise<boolean>;
   createOrganization(name: string): Promise<RegistrationOrganization>;
-  createIdentity(input: {
+  createUser(input: {
     email: string;
     passwordHash: string;
     organizationId: string;
