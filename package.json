@@ -1,29 +1,23 @@
 {
   "name": "procurewiz",
-  "private": true,
   "version": "0.0.1",
-  "description": "ProcureWiz monorepo for API, dashboard, extension, landing, and shared packages.",
-  "license": "MIT",
-  "packageManager": "pnpm@latest",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
-    "format": "prettier --write .",
-    "start:api": "node apps/api/server.js"
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24 <27",
+    "pnpm": ">=11"
   },
-  "dependencies": {
-    "openai": "^6.45.0"
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@prisma/client": "^7.8.0",
-    "eslint": "^10.6.0",
-    "prettier": "^3.9.4",
-    "prisma": "^7.8.0",
-    "turbo": "^2.10.1"
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
   }
 }

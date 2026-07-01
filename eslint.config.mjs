@@ -1,19 +1,24 @@
-import eslintPlugin from "eslint-plugin";
-
-export default {
-  root: true,
-  parserOptions: {
-    ecmaVersion: 2024,
-    sourceType: "module",
-  },
-  env: {
-    browser: true,
-    node: true,
-    es2024: true,
-  },
-  extends: ["eslint:recommended"],
-  rules: {
-    "no-console": "warn",
-    "prefer-const": "error",
-  },
-};
+export default [
+  {
+    files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+      parserOptions: {
+        ecmaVersion: 2024,
+        sourceType: "module"
+      }
+    },
+    plugins: {
+      "@typescript-eslint": await import("@typescript-eslint/eslint-plugin")
+    },
+    rules: {
+      "no-console": ["warn", { "allow": ["warn", "error"] }],
+      "prefer-const": "error",
+      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/explicit-function-return-type": ["warn", { "allowExpressions": true }],
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
+    }
+  }
+];

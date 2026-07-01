@@ -1,46 +1,61 @@
 # ProcureWiz
 
-ProcureWiz is a monorepo for a browser extension, dashboard, backend API, landing site, and shared packages.
+ProcureWiz is a monorepo for an AI-enabled procurement toolkit, including:
 
-## Repository structure
-
-- `apps/api` — backend Node.js API
-- `apps/dashboard` — dashboard application
-- `apps/extension` — browser extension UI and integration
+- `apps/api` — Node.js backend API
+- `apps/dashboard` — internal dashboard
+- `apps/extension` — browser extension shell
 - `apps/landing` — landing page
 - `packages/ui` — shared UI components
-- `packages/sdk` — shared SDK logic
+- `packages/sdk` — shared business logic
 - `packages/types` — shared TypeScript types
 - `packages/config` — shared configuration utilities
 
 ## Getting started
 
-Install dependencies:
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-Start the backend server:
+2. Copy environment variables:
+
+```bash
+cp .env.example .env
+```
+
+3. Start the backend:
 
 ```bash
 pnpm start:api
 ```
 
-Run the monorepo in development:
+4. Run the monorepo in development mode:
 
 ```bash
 pnpm dev
 ```
 
-## Environment
+## Development rules
 
-Copy `.env.example` to `.env` and update secrets before running the backend.
+- No secrets in Git
+- No `any` types without a documented exception
+- Every endpoint must validate inputs
+- Every feature must include tests
+- Every merge must pass CI
+- Every milestone must build successfully before moving on
 
 ## Docker
 
-Run the local Compose stack:
+Build and run the stack:
 
 ```bash
 docker-compose up --build
 ```
+
+## Project structure
+
+The repository root contains the monorepo configuration and shared tooling.
+
+The `apps` folder contains all deployable applications, while `packages` contains shared libraries.
