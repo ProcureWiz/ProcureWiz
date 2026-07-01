@@ -7,14 +7,17 @@
     "dev:api": "pnpm --filter @procurewiz/api dev",
     "dev:dashboard": "pnpm --filter @procurewiz/dashboard dev",
     "build": "pnpm --filter @procurewiz/api build && pnpm --filter @procurewiz/dashboard build",
-    "typecheck": "pnpm --filter @procurewiz/api exec tsc -p tsconfig.json --noEmit",
+    "openapi:generate": "pnpm --filter @procurewiz/api openapi:generate",
+    "sdk:generate": "pnpm --filter @procurewiz/sdk generate",
+    "typecheck": "pnpm --filter @procurewiz/api typecheck",
     "test": "echo \"No tests yet\"",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "format:check": "biome format --check .",
     "start": "pnpm --filter @procurewiz/api start",
-    "setup": "npx pnpm@9.15.0 install && npx pnpm@9.15.0 start"
+    "setup": "npx pnpm@9.15.0 install && npx pnpm@9.15.0 start",
+    "platform:verify": "pnpm openapi:generate && pnpm sdk:generate && pnpm build && pnpm typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2"

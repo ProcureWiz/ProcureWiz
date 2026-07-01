@@ -1,0 +1,15 @@
+{
+  "name": "@procurewiz/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "pnpm --filter @procurewiz/api openapi:generate && npx --yes openapi-typescript-codegen@0.29.0 --input ../../apps/api/openapi/openapi.json --output ./src/generated --client fetch"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript-codegen": "^0.29.0"
+  }
+}

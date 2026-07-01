@@ -5,5 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "echo 'Extension dev build placeholder'"
+  },
+  "dependencies": {
+    "@procurewiz/contracts": "workspace:*",
+    "@procurewiz/sdk": "workspace:*"
   }
 }
