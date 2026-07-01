@@ -1,0 +1,25 @@
+{
+  "name": "procurewiz-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @procurewiz/api dev",
+    "dev:api": "pnpm --filter @procurewiz/api dev",
+    "dev:dashboard": "pnpm --filter @procurewiz/dashboard dev",
+    "build": "pnpm --filter @procurewiz/api build && pnpm --filter @procurewiz/dashboard build",
+    "typecheck": "pnpm --filter @procurewiz/api exec tsc -p tsconfig.json --noEmit",
+    "test": "echo \"No tests yet\"",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format --check .",
+    "start": "pnpm --filter @procurewiz/api start",
+    "setup": "npx pnpm@9.15.0 install && npx pnpm@9.15.0 start"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

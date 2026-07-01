@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "ProcureWiz Extension",
+  "version": "0.1.0",
+  "description": "ProcureWiz browser extension scaffold",
+  "permissions": ["storage", "activeTab"],
+  "action": {
+    "default_title": "ProcureWiz",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}

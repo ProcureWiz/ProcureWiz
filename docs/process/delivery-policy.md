@@ -1,0 +1,13 @@
+# Delivery Policy
+
+Every milestone should be delivered as a reproducible package with:
+
+1. A task list
+2. The exact files to create or modify
+3. The complete contents of each file
+4. Verification commands
+5. Expected output
+6. A git commit message
+7. Rollback instructions
+
+This keeps implementation reproducible, debuggable, and easier to review as the project grows.
