@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import jwt from 'jsonwebtoken';
 import { AuthConfigService } from './auth-config.service.js';
+import { JsonwebtokenAdapter } from './jsonwebtoken.adapter.js';
 import { JwtService } from './jwt.service.js';
 
 const configStub = {
@@ -24,8 +24,10 @@ const configStub = {
   },
 } as AuthConfigService;
 
+const jwtAdapter = new JsonwebtokenAdapter();
+
 test('sign and verify access token', async () => {
-  const service = new JwtService(configStub);
+  const service = new JwtService(configStub, jwtAdapter);
 
   const signed = await service.signAccessToken({
     subject: 'user-1',
@@ -43,21 +45,19 @@ test('sign and verify access token', async () => {
 });
 
 test('verify fails for expired token', async () => {
-  const service = new JwtService(configStub);
-  const expired = jwt.sign(
-    {
+  const service = new JwtService(configStub, jwtAdapter);
+  const expired = jwtAdapter.sign({
+    payload: {
       sub: 'user-2',
       jti: 'expired-token-id',
       typ: 'access',
       roles: ['user'],
     },
-    configStub.jwt('access').secret,
-    {
-      issuer: configStub.jwt('access').issuer,
-      audience: configStub.jwt('access').audience,
-      expiresIn: -10,
-    },
-  );
+    secret: configStub.jwt('access').secret,
+    issuer: configStub.jwt('access').issuer,
+    audience: configStub.jwt('access').audience,
+    expiresInSeconds: -10,
+  });
 
   await assert.rejects(async () => service.verifyAccessToken(expired), {
     message: 'TOKEN_EXPIRED',
@@ -65,7 +65,7 @@ test('verify fails for expired token', async () => {
 });
 
 test('verify fails for invalid token', async () => {
-  const service = new JwtService(configStub);
+  const service = new JwtService(configStub, jwtAdapter);
 
   await assert.rejects(async () => service.verifyAccessToken('not-a-token'), {
     message: 'TOKEN_INVALID',
@@ -73,7 +73,7 @@ test('verify fails for invalid token', async () => {
 });
 
 test('refresh token rotation returns replacement and invalidates previous token id', async () => {
-  const service = new JwtService(configStub);
+  const service = new JwtService(configStub, jwtAdapter);
   const current = await service.signRefreshToken({
     subject: 'user-3',
     roles: ['buyer'],
@@ -84,13 +84,14 @@ test('refresh token rotation returns replacement and invalidates previous token 
   const verifiedReplacement = await service.verifyRefreshToken(rotated.replacementRefreshToken.token);
 
   assert.equal(rotated.invalidatedTokenId, current.tokenId);
+  assert.equal(rotated.replacementAccessToken.kind, 'access');
   assert.notEqual(rotated.replacementRefreshToken.tokenId, current.tokenId);
   assert.equal(verifiedReplacement.subject, 'user-3');
   assert.equal(verifiedReplacement.kind, 'refresh');
 });
 
 test('sign and verify refresh token', async () => {
-  const service = new JwtService(configStub);
+  const service = new JwtService(configStub, jwtAdapter);
   const signed = await service.signRefreshToken({ subject: 'user-4' });
 
   const verified = await service.verifyRefreshToken(signed.token);
@@ -98,4 +99,24 @@ test('sign and verify refresh token', async () => {
   assert.equal(verified.subject, 'user-4');
   assert.equal(verified.kind, 'refresh');
   assert.equal(verified.tokenId, signed.tokenId);
+});
+
+test('token type isolation rejects token interchangeability', async () => {
+  const service = new JwtService(configStub, jwtAdapter);
+  const access = await service.signAccessToken({ subject: 'user-5' });
+  const refresh = await service.signRefreshToken({ subject: 'user-5' });
+
+  await assert.rejects(
+    async () => service.verifyRefreshToken(access.token),
+    (error: unknown) =>
+      error instanceof Error &&
+      (error.message === 'TOKEN_INVALID' || error.message === 'TOKEN_INVALID_KIND'),
+  );
+
+  await assert.rejects(
+    async () => service.verifyAccessToken(refresh.token),
+    (error: unknown) =>
+      error instanceof Error &&
+      (error.message === 'TOKEN_INVALID' || error.message === 'TOKEN_INVALID_KIND'),
+  );
 });

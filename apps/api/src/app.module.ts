@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthConfigService } from './auth/auth-config.service.js';
 import { JwtService } from './auth/jwt.service.js';
+import { JsonwebtokenAdapter } from './auth/jsonwebtoken.adapter.js';
 import { PasswordService } from './auth/password.service.js';
 import { HealthController } from './health.controller.js';
 import { PlatformConfigService } from './platform/platform-config.service.js';
@@ -18,7 +19,21 @@ import { validateEnvironment } from './platform/validate-environment.js';
     }),
   ],
   controllers: [HealthController],
-  providers: [PlatformConfigService, PlatformLoggerService, AuthConfigService, PasswordService, JwtService],
-  exports: [PlatformConfigService, PlatformLoggerService, AuthConfigService, PasswordService, JwtService],
+  providers: [
+    PlatformConfigService,
+    PlatformLoggerService,
+    AuthConfigService,
+    PasswordService,
+    JsonwebtokenAdapter,
+    JwtService,
+  ],
+  exports: [
+    PlatformConfigService,
+    PlatformLoggerService,
+    AuthConfigService,
+    PasswordService,
+    JsonwebtokenAdapter,
+    JwtService,
+  ],
 })
 export class AppModule {}

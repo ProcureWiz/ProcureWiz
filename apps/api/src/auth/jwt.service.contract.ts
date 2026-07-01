@@ -1,5 +1,15 @@
 export type JwtTokenKind = 'access' | 'refresh';
 
+export type JwtPayload = {
+  sub: string;
+  jti: string;
+  typ: JwtTokenKind;
+  roles?: string[];
+  organizationId?: string;
+  iat?: number;
+  exp?: number;
+};
+
 export type JwtIdentity = {
   subject: string;
   roles?: string[];
@@ -24,6 +34,7 @@ export type VerifiedJwtToken = {
 };
 
 export type RefreshRotationResult = {
+  replacementAccessToken: SignedJwtToken;
   replacementRefreshToken: SignedJwtToken;
   invalidatedTokenId: string;
 };

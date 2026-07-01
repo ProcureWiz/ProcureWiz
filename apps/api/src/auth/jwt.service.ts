@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import jwt, { type JwtPayload, type SignOptions } from 'jsonwebtoken';
 import { AuthConfigService } from './auth-config.service.js';
+import { type JwtAdapterContract } from './jwt-adapter.contract.js';
+import { JsonwebtokenAdapter } from './jsonwebtoken.adapter.js';
 import {
   type JwtIdentity,
+  type JwtPayload,
   type JwtServiceContract,
   type JwtTokenKind,
   type RefreshRotationResult,
@@ -11,17 +13,12 @@ import {
   type VerifiedJwtToken,
 } from './jwt.service.contract.js';
 
-type TokenPayload = JwtPayload & {
-  sub: string;
-  jti: string;
-  typ: JwtTokenKind;
-  roles?: string[];
-  organizationId?: string;
-};
-
 @Injectable()
 export class JwtService implements JwtServiceContract {
-  constructor(private readonly authConfigService: AuthConfigService) {}
+  constructor(
+    private readonly authConfigService: AuthConfigService,
+    private readonly jwtAdapter: JsonwebtokenAdapter,
+  ) {}
 
   async signAccessToken(identity: JwtIdentity): Promise<SignedJwtToken> {
     return this.signToken('access', identity);
@@ -41,6 +38,11 @@ export class JwtService implements JwtServiceContract {
 
   async rotateRefreshToken(currentRefreshToken: string): Promise<RefreshRotationResult> {
     const verified = await this.verifyRefreshToken(currentRefreshToken);
+    const replacementAccessToken = await this.signAccessToken({
+      subject: verified.subject,
+      roles: verified.roles,
+      organizationId: verified.organizationId,
+    });
     const replacementRefreshToken = await this.signRefreshToken({
       subject: verified.subject,
       roles: verified.roles,
@@ -48,6 +50,7 @@ export class JwtService implements JwtServiceContract {
     });
 
     return {
+      replacementAccessToken,
       replacementRefreshToken,
       invalidatedTokenId: verified.tokenId,
     };
@@ -59,7 +62,7 @@ export class JwtService implements JwtServiceContract {
     const config = this.authConfigService.jwt(kind);
     const tokenId = randomUUID();
 
-    const payload: TokenPayload = {
+    const payload: JwtPayload = {
       sub: identity.subject,
       jti: tokenId,
       typ: kind,
@@ -67,13 +70,13 @@ export class JwtService implements JwtServiceContract {
       organizationId: identity.organizationId,
     };
 
-    const signOptions: SignOptions = {
+    const token = this.jwtAdapter.sign({
+      payload,
+      secret: config.secret,
       issuer: config.issuer,
       audience: config.audience,
-      expiresIn: config.ttlSeconds,
-    };
-
-    const token = jwt.sign(payload, config.secret, signOptions);
+      expiresInSeconds: config.ttlSeconds,
+    });
 
     return {
       token,
@@ -89,10 +92,12 @@ export class JwtService implements JwtServiceContract {
     const config = this.authConfigService.jwt(kind);
 
     try {
-      const decoded = jwt.verify(token, config.secret, {
+      const decoded = this.jwtAdapter.verify({
+        token,
+        secret: config.secret,
         issuer: config.issuer,
         audience: config.audience,
-      }) as TokenPayload;
+      });
 
       if (decoded.typ !== kind) {
         throw new Error('TOKEN_INVALID_KIND');
