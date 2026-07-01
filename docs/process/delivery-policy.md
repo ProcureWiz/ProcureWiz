@@ -26,3 +26,16 @@ The following rules are mandatory for every milestone:
 5. No parallel implementation tracks inside a milestone.
 6. Keep each commit scoped to a single component whenever possible.
 7. End each milestone with a green build and clean git status.
+
+## Rule #9: No Checklist Coding
+
+Do not implement features only because they appear in a roadmap or checklist.
+
+A feature is implemented only if at least one of the following is true:
+
+1. It delivers user value.
+2. It supports an upcoming feature.
+3. It reduces technical risk.
+4. It satisfies a verified requirement.
+
+If none of these conditions apply, leave the codebase unchanged.
