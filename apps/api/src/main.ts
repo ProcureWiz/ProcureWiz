@@ -4,12 +4,12 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './platform/global-exception.filter.js';
+import { PlatformConfigService } from './platform/platform-config.service.js';
 
 type RequestContext = {
   requestId: string;
@@ -27,7 +27,7 @@ type RequestWithContext = {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
-  const configService = app.get(ConfigService);
+  const platformConfig = app.get(PlatformConfigService);
   const logger = new Logger('HttpLogger');
 
   app.useGlobalPipes(
@@ -41,13 +41,13 @@ async function bootstrap() {
 
   await app.register(helmet as never);
   await app.register(cors as never, {
-    origin: configService.get<string>('CORS_ORIGIN', '*'),
+    origin: platformConfig.corsOrigin,
     credentials: true,
   } as never);
   await app.register(compress as never, { global: true } as never);
   await app.register(rateLimit as never, {
-    max: configService.get<number>('RATE_LIMIT_MAX', 100),
-    timeWindow: configService.get<string>('RATE_LIMIT_TIME_WINDOW', '1 minute'),
+    max: platformConfig.rateLimitMax,
+    timeWindow: platformConfig.rateLimitWindow,
   } as never);
 
   const fastify = app.getHttpAdapter().getInstance();
@@ -104,7 +104,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(configService.get<number>('PORT', 3000), '0.0.0.0');
+  await app.listen(platformConfig.port, '0.0.0.0');
 }
 
 bootstrap();
