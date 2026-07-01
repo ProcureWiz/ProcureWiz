@@ -1,5 +1,12 @@
 # Milestone Delivery Template
 
+## 0. Strict Mode Checklist
+- Verify whether target files already exist before generating new files.
+- Confirm scope is component-by-component, not feature-parallel.
+- Define the ordered component list for the milestone.
+- Define compile/build commands required between components.
+- Require one commit per completed component.
+
 ## 1. Task List
 - List the features or changes planned for this milestone.
 
