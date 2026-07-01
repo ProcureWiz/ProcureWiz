@@ -14,7 +14,7 @@ export class LoginService implements LoginServiceContract {
     const email = this.normalizeEmail(input.email);
     this.assertNonEmpty('password', input.password);
 
-    const identity = await this.loginStore.findIdentityByEmail(email);
+    const identity = await this.loginStore.findUserByEmail(email);
     if (!identity) {
       throw new Error('INVALID_CREDENTIALS');
     }
@@ -34,6 +34,13 @@ export class LoginService implements LoginServiceContract {
       subject: identity.id,
       roles: identity.roles,
       organizationId: identity.organizationId,
+    });
+
+    const refreshExpiresAt = new Date(Date.now() + refreshToken.expiresInSeconds * 1000).toISOString();
+    await this.loginStore.updateRefreshTokenMetadata({
+      userId: identity.id,
+      refreshTokenId: refreshToken.tokenId,
+      expiresAt: refreshExpiresAt,
     });
 
     return {

@@ -63,8 +63,24 @@ class LoginStoreFake implements LoginStoreContract {
     roles: string[];
   }>();
 
-  async findIdentityByEmail(email: string) {
+  refreshMetadataUpdates: Array<{
+    userId: string;
+    refreshTokenId: string;
+    replacedTokenId?: string;
+    expiresAt: string;
+  }> = [];
+
+  async findUserByEmail(email: string) {
     return this.identities.get(email) ?? null;
+  }
+
+  async updateRefreshTokenMetadata(input: {
+    userId: string;
+    refreshTokenId: string;
+    replacedTokenId?: string;
+    expiresAt: string;
+  }): Promise<void> {
+    this.refreshMetadataUpdates.push(input);
   }
 
   seed(identity: {
@@ -104,6 +120,9 @@ test('login succeeds and returns transport-agnostic auth result', async () => {
   assert.equal(result.refreshToken.kind, 'refresh');
   assert.equal(result.accessTokenExpiresInSeconds, 900);
   assert.equal(result.refreshTokenExpiresInSeconds, 2592000);
+  assert.equal(store.refreshMetadataUpdates.length, 1);
+  assert.equal(store.refreshMetadataUpdates[0]?.userId, 'identity-1');
+  assert.equal(store.refreshMetadataUpdates[0]?.refreshTokenId, result.refreshToken.tokenId);
 });
 
 test('login fails when email does not exist', async () => {
@@ -124,6 +143,7 @@ test('login fails when email does not exist', async () => {
   );
 
   assert.equal(passwordService.verifyCalls.length, 0);
+  assert.equal(store.refreshMetadataUpdates.length, 0);
 });
 
 test('login fails when password is incorrect', async () => {
@@ -152,6 +172,7 @@ test('login fails when password is incorrect', async () => {
   );
 
   assert.equal(passwordService.verifyCalls.length, 1);
+  assert.equal(store.refreshMetadataUpdates.length, 0);
 });
 
 test('login rejects empty password', async () => {
