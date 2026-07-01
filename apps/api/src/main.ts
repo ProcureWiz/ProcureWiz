@@ -3,13 +3,14 @@ import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './platform/global-exception.filter.js';
 import { PlatformConfigService } from './platform/platform-config.service.js';
+import { PlatformLoggerService } from './platform/platform-logger.service.js';
 
 type RequestContext = {
   requestId: string;
@@ -28,7 +29,7 @@ type RequestWithContext = {
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
   const platformConfig = app.get(PlatformConfigService);
-  const logger = new Logger('HttpLogger');
+  const platformLogger = app.get(PlatformLoggerService);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -79,17 +80,14 @@ async function bootstrap() {
       const context = request.requestContext;
       const duration = context ? Date.now() - context.startedAt : 0;
 
-      logger.log(
-        JSON.stringify({
-          event: 'http.request',
-          method: request.method,
-          url: request.url,
-          statusCode: reply.statusCode,
-          durationMs: duration,
-          requestId: context?.requestId,
-          correlationId: context?.correlationId,
-        }),
-      );
+      platformLogger.logEvent('http.request', {
+        method: request.method,
+        url: request.url,
+        statusCode: reply.statusCode,
+        durationMs: duration,
+        requestId: context?.requestId,
+        correlationId: context?.correlationId,
+      });
       done();
     },
   );
