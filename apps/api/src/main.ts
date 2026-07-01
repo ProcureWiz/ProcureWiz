@@ -3,7 +3,7 @@ import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -36,6 +36,16 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => {
+        const message = errors
+          .flatMap((error) => Object.values(error.constraints ?? {}))
+          .join(', ');
+
+        return new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: message || 'Validation failed',
+        });
+      },
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter(platformLogger));
